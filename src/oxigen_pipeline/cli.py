@@ -2,6 +2,7 @@
 import argparse
 import os
 import pandas as pd
+import pickle
 from .pipeline import PipelineConfig, run_data_pipeline
 from .model import train_and_evaluate_model
 
@@ -40,6 +41,11 @@ def main():
         html_output_path=os.path.join(args.out_dir, "report.html"),
         model_name=args.model
     )
+
+    # Guardar el modelo entrenado 
+    with open(os.path.join(args.out_dir, "best_model.pkl"), "wb") as f:
+        pickle.dump(best_model, f)
+        print(f"Best model saved to {os.path.join(args.out_dir, 'best_model.pkl')}")
 
     print("Best Model Parameters:", best_params)
     print("Evaluation Metrics:", metrics)

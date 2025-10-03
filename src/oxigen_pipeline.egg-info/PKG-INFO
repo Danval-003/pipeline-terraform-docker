@@ -1,0 +1,133 @@
+Metadata-Version: 2.4
+Name: oxigen-pipeline
+Version: 1.4.0
+Summary: Data pipeline: extract → classify → clean → split -> Model
+Author: Daniel Valdez
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pandas>=2.3
+Requires-Dist: numpy>=1.23
+Requires-Dist: scikit-learn<2.0,>=1.3
+Requires-Dist: matplotlib>=3.7
+Requires-Dist: shap>=0.44
+Requires-Dist: xgboost>=1.7
+Requires-Dist: lightgbm>=3.3
+Requires-Dist: joblib>=1.3
+
+# Model Pipeline (oxigen-pipeline)
+
+Pipeline de ML para **regresión tabular** orientado a calidad de aire (AQI) u otras variables **continuas**.
+Incluye: *ingesta → limpieza → split → entrenamiento (con tuning) → evaluación → reporte HTML (métricas + SHAP en base64) → diagrama del pipeline*.
+
+> Repo: `Danval-003/model_pipeline`. ([GitHub][1])
+
+## Características
+
+* **CLI simple** para correr el pipeline sobre un `.csv`.
+* **Preprocesamiento embebido** con `ColumnTransformer`:
+
+  * `StandardScaler` para numéricas.
+  * `OneHotEncoder(handle_unknown="ignore")` (salida densa) para categóricas.
+* **Modelos de regresión** compatibles: RandomForest, Gradient Boosting, XGBoost, LightGBM.
+* **Tuning** con `RandomizedSearchCV` (cv=3).
+* **SHAP** con *background* consistente y **gráfico embebido en base64** dentro del HTML.
+* **Diagrama** del pipeline en `pipeline_diagram.html`.
+
+## Instalación
+
+```bash
+pip install -U oxigen-pipeline
+```
+
+> Alternativa: `pip install -U --no-cache-dir oxigen-pipeline`
+
+## Uso (CLI)
+
+```bash
+oxigen-pipeline --data-path final_dataset.csv --target AQI
+```
+
+* `--data-path` : ruta al CSV.
+* `--target`    : nombre de la columna objetivo (ej. `AQI`).
+
+El comando imprime métricas y genera:
+
+* `model_report.html` (métricas de test + gráfico SHAP embebido en base64).
+* `pipeline_diagram.html` (diagrama del pipeline).
+
+> Si tu versión incluye selector de modelo por CLI, podés pasar `--model RandomForest|GBM|XGBoost|LightGBM`. Si no, podés elegir el modelo vía API (ver abajo).
+
+## Datos de ejemplo
+
+El pipeline asume un CSV con columnas numéricas y/o categóricas y una **target continua**.
+Ejemplo típico (AQI):
+
+```
+Date,Month,Year,Holidays_Count,Days,PM2.5,PM10,NO2,SO2,CO,Ozone,AQI
+15.0,5.0,2022,1,7,118.54,257.73,3.57,24.06,1.24,33.43,295.0
+...
+```
+
+## Uso (API en Python)
+
+```python
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from oxigen_pipeline.model import train_and_evaluate_model
+
+df = pd.read_csv("final_dataset.csv")
+
+target = "AQI"
+X = df.drop(columns=[target])
+y = df[target]
+
+# split train/val/test (ejemplo simple 60/20/20)
+X_train, X_tmp, y_train, y_tmp = train_test_split(X, y, test_size=0.40, random_state=42)
+X_val,   X_test, y_val, y_test = train_test_split(X_tmp, y_tmp, test_size=0.50, random_state=42)
+
+best_model, best_params, metrics = train_and_evaluate_model(
+    X_train, X_val, X_test, y_train, y_val, y_test,
+    html_output_path="model_report.html",
+    model_name="RandomForest"   # "GBM" | "XGBoost" | "LightGBM"
+)
+
+print(best_params, metrics)
+```
+
+### ¿Qué hace internamente?
+
+* Detecta tipos: numéricas (`np.number`) y categóricas (`object/category`).
+* Arma `ColumnTransformer(num=StandardScaler, cat=OneHotEncoder(handle_unknown="ignore", salida densa))`.
+* Pipeline: `pre` → `model`.
+* Tuning con `RandomizedSearchCV` y selección por R² de validación.
+* Evalúa en **test** y arma `model_report.html` con:
+
+  * MSE, MAE, R².
+  * **SHAP summary embebido en base64** (para que siempre se vea, sin archivos extra).
+* Exporta también `pipeline_diagram.html`.
+
+## Requisitos
+
+* Python `>=3.10`
+* Dependencias principales (se instalan con el paquete):
+
+  * `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `shap`, `xgboost`, `lightgbm`, `joblib`.
+
+## Desarrollo
+
+```bash
+git clone https://github.com/Danval-003/model_pipeline.git
+cd model_pipeline
+python -m venv .venv && .\.venv\Scripts\activate
+pip install -U pip build
+pip install -e .        # modo editable
+```
+
+Build y publicación:
+
+```bash
+python -m build
+# subir con twine (o workflow de GitHub Actions)
+```
+

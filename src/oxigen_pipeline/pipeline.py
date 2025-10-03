@@ -5,6 +5,7 @@ from .extract import ClassifyTypesTransformer, extract_csv
 from sklearn.pipeline import Pipeline
 
 def run_data_pipeline(config: PipelineConfig):
+    print(f"run_data_pipeline with config: {config}")
     df_raw = extract_csv(config)
     pipe = Pipeline(steps=[
         ("classify", ClassifyTypesTransformer(config)),

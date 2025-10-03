@@ -1,0 +1,7 @@
+{
+  "model_name": "XGBoost",
+  "train_path": "/mnt/data/train.parquet",
+  "val_path": "/mnt/data/val.parquet",
+  "test_path": "/mnt/data/test.parquet",
+  "target_col": "AQI"
+}

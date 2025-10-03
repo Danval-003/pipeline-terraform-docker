@@ -1,0 +1,4 @@
+{
+  "input_path": "/mnt/data/raw.csv",
+  "target_col": "AQI"
+}

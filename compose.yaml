@@ -1,0 +1,57 @@
+services:
+  preproc:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.preproc
+    container_name: preproc
+    networks: [ml_net]
+    volumes:
+      - ml_data:/mnt/data
+      - ml_models:/mnt/models
+      - ml_reports:/mnt/reports
+    ports: ["8080:8080"] # si querés ver /pipeline desde host
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  train:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.train
+    container_name: train
+    networks: [ml_net]
+    volumes:
+      - ml_data:/mnt/data
+      - ml_models:/mnt/models
+      - ml_reports:/mnt/reports
+    ports: ["8081:8081"] # opcional
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  infer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.infer
+    container_name: infer
+    networks: [ml_net]
+    volumes:
+      - ml_models:/mnt/models:ro
+    ports: ["8082:8082"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8082/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  ml_net: {} # user-defined bridge con DNS por nombre de servicio
+
+volumes:
+  ml_data: {}
+  ml_models: {}
+  ml_reports: {}

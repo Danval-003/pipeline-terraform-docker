@@ -1,0 +1,18 @@
+/.venv
+
+# evita copiar cachés, VCS, etc.
+**/.git
+**/.venv
+**/__pycache__/
+**/*.pyc
+# nada de datasets locales (montamos por volumen)
+data/
+reports/
+.conda/
+# por si alguna vez pones el main.tf aquí
+.terraform/
+terraform.tfstate*
+build/
+*.log
+terraform.tfvars
+.terraform.lock.hcl
